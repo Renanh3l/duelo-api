@@ -1,18 +1,12 @@
-const fetch = require('cross-fetch')
+const riotFetch = require('../utils/riotFetch')
 const { apiBaseUrl } = require('../config/riot')
 
 const getSummonerByName = async (summonerName) => {
-    const response = await fetch(
-        `${apiBaseUrl}/lol/summoner/v4/summoners/by-name/${summonerName}`,
-        {
-            headers: {
-                'X-Riot-Token': process.env.RIOT_API_KEY,
-            },
-        }
+    const response = await riotFetch(
+        `${apiBaseUrl}/lol/summoner/v4/summoners/by-name/${summonerName}`
     )
 
-    const data = await response.json()
-    return data
+    return await response.json()
 }
 
 module.exports = getSummonerByName

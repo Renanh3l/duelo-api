@@ -1,3 +1,4 @@
+const jwt = require('jsonwebtoken')
 const User = require('../models/User')
 const checkLeagueValidation = require('../services/checkLeagueValidation')
 const startLeagueValidation = require('../services/startLeagueValidation')
@@ -9,7 +10,7 @@ module.exports = {
         const userExists = await User.findOne({ email })
 
         if (userExists) {
-            return res.status(400).json('Usuário já existe!')
+            return res.status(400).json({ error: 'Usuário já existe!' })
         }
 
         try {
@@ -21,7 +22,7 @@ module.exports = {
 
             res.status(201).json(user)
         } catch (error) {
-            res.status(400).json(error)
+            res.status(400).json({ error: error })
         }
     },
     async update(req, res) {
@@ -41,25 +42,42 @@ module.exports = {
             res.status(400).json(error)
         }
     },
+    async me(req, res) {
+        if (
+            req.headers &&
+            req.headers.authorization &&
+            req.headers.authorization.startsWith('Bearer')
+        ) {
+            let token = req.headers.authorization.split(' ')[1]
+            const decoded = jwt.verify(token, process.env.JWT_SECRET)
+            const userId = decoded.id
+
+            // Fetch the user by id
+            User.findOne({ _id: userId }).then(function (user) {
+                // Do something with the user
+                return res.status(200).json(user)
+            })
+        }
+        return res.status(500)
+    },
     async login(req, res) {
         const { email, password } = req.body
         const user = await User.findOne({ email })
 
         if (!user) {
-            return res.status(400).json('Usuário não existe!')
+            return res.status(400).json({ error: 'Usuário não existe!' })
         }
 
         if (await user.matchPassword(password)) {
+            const noPassUser = { ...user._doc }
+            delete noPassUser.password
+
             res.status(200).json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                coins: user.coins,
-                isLeagueValidated: user.isLeagueValidated,
+                user: noPassUser,
                 token: generateToken(user._id),
             })
         } else {
-            res.status(400).json('Email ou senha inválido!')
+            res.status(400).json({ error: 'Email ou senha inválido!' })
         }
     },
     async validate(req, res) {
